@@ -1,0 +1,52 @@
+2013-09-12  Ken Coar  <coar@iodine.rdu.redhat.com>
+
+	* lib/candlepin-api/version.rb (CandlepinAPI): Updated to version
+	0.4.0; added more API versions and about to go public.  Also, we
+	now have a *real* updated version of the Cri gem, so we don't need
+	to maintain our own.  Cleaned up Bundler's setup.rb file a bit.
+
+2013-08-21  Ken Coar  <coar@iodine.rdu.redhat.com>
+
+	* lib/candlepin-api/version.rb (CandlepinAPI): Updated to version
+	0.3.0.
+
+	* candlepin-api.gemspec: Added rubyforge_project and home_page
+	values, and fixed rdoc_options to be backward-compatible with
+	older RDoc versions.
+
+	* lib/candlepin-api/base.rb (CandlepinAPI::Endpoint#submit):
+	Repaired handling of request header so it can be inherited from
+	any settings applied by the constructor.
+	(CandlepinAPI::Endpoint#initialize): Special-case a :header key in
+	an argument hash so it can be preserved as the request header
+	definition at #submit time.  Removed Red Hat-specific references.
+	(CandlepinAPI::Endpoint#qparam): Added #net_http_request reader to
+	allow access to request header and other aspects.  Removed Red
+	Hat-specific references.
+	(CandlepinAPI::Endpoint#to_s): Fixed assembly of request URI so
+	that path segments specified in the server-URI are retained.
+
+	* bin/candlepin-api (#status_line): Added --header-field/-H and
+	--request-header/-I, plus display of request header on demand.
+	Added self.context#[] and #[]= to access the request header fields
+	being added.
+
+2013-08-20  Ken Coar  <kcoar@redhat.com>
+
+	* Rakefile: Made the parse_versions task take the mtime of the API
+	generator script into account (if it's newer than the output
+	files, run it).
+
+	* script/mkclasses-from-API.rb (CandlepinAPI): Added code to
+	include the --data/-d option in each entrypoint description.  Also
+	regenerated all the API and CLI files.
+
+	* bin/candlepin-api (CandlepinCLI#subcommand): Added --data/-d
+	option for passing JSON request body.
+
+	* lib/candlepin-api/version.rb (CandlepinAPI): Update the package
+	version to 0.2.0 due to new functionality.
+
+	* candlepin-api.gemspec: Added directives to avoid trying to
+	document all the auto-generated filed.
+

@@ -1,0 +1,70 @@
+have_library: checking for main() in -lc... -------------------- yes
+
+"gcc -o conftest -I/usr/include/x86_64-linux -I/usr/include/ruby/backward -I/usr/include -I.    -O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -mtune=generic -fPIC -O0 -Wall conftest.c  -L. -L/usr/lib64 -L. -Wl,-z,relro -rdynamic -Wl,-export-dynamic  -m64   -lruby  -lpthread -lrt -ldl -lcrypt -lm   -lc"
+In file included from /usr/include/string.h:27:0,
+                 from /usr/include/ruby/ruby.h:48,
+                 from /usr/include/ruby.h:32,
+                 from conftest.c:1:
+/usr/include/features.h:314:4: warning: #warning _FORTIFY_SOURCE requires compiling with optimization (-O) [-Wcpp]
+checked program was:
+/* begin */
+1: #include "ruby.h"
+2: 
+3: int main(int argc, char **argv)
+4: {
+5:   return 0;
+6: }
+/* end */
+
+"gcc -o conftest -I/usr/include/x86_64-linux -I/usr/include/ruby/backward -I/usr/include -I.    -O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -mtune=generic -fPIC -O0 -Wall conftest.c  -L. -L/usr/lib64 -L. -Wl,-z,relro -rdynamic -Wl,-export-dynamic  -m64   -lruby -lc  -lpthread -lrt -ldl -lcrypt -lm   -lc"
+In file included from /usr/include/string.h:27:0,
+                 from /usr/include/ruby/ruby.h:48,
+                 from /usr/include/ruby.h:32,
+                 from conftest.c:1:
+/usr/include/features.h:314:4: warning: #warning _FORTIFY_SOURCE requires compiling with optimization (-O) [-Wcpp]
+conftest.c: In function ‘t’:
+conftest.c:4:53: error: ‘main’ undeclared (first use in this function)
+conftest.c:4:53: note: each undeclared identifier is reported only once for each function it appears in
+conftest.c:4:28: warning: variable ‘p’ set but not used [-Wunused-but-set-variable]
+checked program was:
+/* begin */
+ 1: #include "ruby.h"
+ 2: 
+ 3: /*top*/
+ 4: int t() { void ((*volatile p)()); p = (void ((*)()))main; return 0; }
+ 5: int main(int argc, char **argv)
+ 6: {
+ 7:   if (argc > 1000000) {
+ 8:     printf("%p", &t);
+ 9:   }
+10: 
+11:   return 0;
+12: }
+/* end */
+
+"gcc -o conftest -I/usr/include/x86_64-linux -I/usr/include/ruby/backward -I/usr/include -I.    -O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -mtune=generic -fPIC -O0 -Wall conftest.c  -L. -L/usr/lib64 -L. -Wl,-z,relro -rdynamic -Wl,-export-dynamic  -m64   -lruby -lc  -lpthread -lrt -ldl -lcrypt -lm   -lc"
+In file included from /usr/include/string.h:27:0,
+                 from /usr/include/ruby/ruby.h:48,
+                 from /usr/include/ruby.h:32,
+                 from conftest.c:1:
+/usr/include/features.h:314:4: warning: #warning _FORTIFY_SOURCE requires compiling with optimization (-O) [-Wcpp]
+conftest.c: In function ‘t’:
+conftest.c:4:1: warning: implicit declaration of function ‘main’ [-Wimplicit-function-declaration]
+checked program was:
+/* begin */
+ 1: #include "ruby.h"
+ 2: 
+ 3: /*top*/
+ 4: int t() { main(); return 0; }
+ 5: int main(int argc, char **argv)
+ 6: {
+ 7:   if (argc > 1000000) {
+ 8:     printf("%p", &t);
+ 9:   }
+10: 
+11:   return 0;
+12: }
+/* end */
+
+--------------------
+

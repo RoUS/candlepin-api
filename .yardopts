@@ -1,0 +1,8 @@
+--title 'candlepin-api Gem Documentation'
+--charset utf-8
+--files LICENCE.txt
+--exclude lib/candlepin-api/versioned
+--exclude lib/candlepin-api/cli
+--exclude bundle
+--exclude script
+--main README.md

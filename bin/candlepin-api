@@ -1,0 +1,568 @@
+#! /usr/bin/env ruby
+#
+require('rubygems')
+require('bundler/setup')
+require('cri')
+require('json')
+require('ostruct')
+require('rest-client')
+
+require('yaml')
+begin
+  require('psych')
+  YAML::ENGINE.yamler = 'psych'
+rescue LoadError
+  #
+  # Use default behaviour (syck)
+  #
+end
+
+if (ENV.key?('CANDLEPIN_API_VERSION'))
+  CANDLEPIN_API_VERSION = ENV['CANDLEPIN_API_VERSION']
+end
+require('candlepin-api')
+
+UTF_ENCODE = String.new.respond_to?(:force_encoding)
+
+def utf8ise(*args_p)
+  return args_p unless (UTF_ENCODE)
+  args = args_p.inject([]) { |memo,itm_p|
+    itm = itm_p
+    if (itm.kind_of?(String))
+      begin
+        itm = itm_p.encode('UTF-8')
+      rescue Encoding::UndefinedConversionError
+        itm = itm_p.dup
+        itm.force_encoding('UTF-8')
+      end
+    end
+    memo << itm
+    memo
+  }
+  return args
+end
+
+module CandlepinCLI
+
+  attr_accessor(:context)
+  module_function(:context, :context=)
+
+  default_context = {
+    :server_uri		=> nil,
+    :credentials	=> nil,
+    :flags		=> Set.new,
+    :format		=> :text,
+    :results		=> {},
+    :outfile		=> '-',
+    :data		=> nil,
+    :rq_header		=> {},
+  }
+  self.context = OpenStruct.new(default_context)
+  class << self.context
+
+    def key(key_p)
+      return key_p if (self.rq_header.key?(key_p))
+      key = key_p.to_s
+      return self.rq_header.keys.find { |k| k.to_s =~ %r!^#{key}$!i }
+    end                         # def key
+
+    def [](key_p)
+      return self.rq_header[key_p] if (self.key(key_p))
+      key_actual = self.key(key_p)
+      return key_actual ? self.rq_header[key_actual] : nil
+    end                         # def []
+
+    def []=(key_p, val_p)
+      key_actual = self.key(key_p) || key_p.to_s.downcase.capitalize
+      return (self.rq_header[key_actual] = val_p)
+    end                         # def []=
+
+  end                           # self.context singleton class
+
+  def results
+    return self.context.results
+  end                           # def results
+  module_function(:results)
+
+  def credentials
+    return self.context.credentials
+  end                           # def credentials
+  module_function(:credentials)
+
+  def credentials=(value)
+    newval = value.nil? ? nil : (value.to_s.split(%r!:!) << '')[0,2]
+    self.context.credentials = newval
+  end                           # def credentials=
+  module_function(:credentials=)
+
+  def server_uri
+    return self.context.server_uri
+  end                           # def server_uri
+  module_function(:server_uri)
+
+  def server_uri=(uri_p)
+    unless ((uri = uri_p).nil?)
+      uri = uri.to_s.dup.sub(%r!/$!, '')
+      uri << '/candlepin' unless (uri =~ %r!/candlepin$!)
+    end
+    self.context.server_uri = uri
+  end                           # def server_uri=
+  module_function(:server_uri=)
+
+  def flags
+    return self.context.flags
+  end                           # def flags
+  module_function(:flags)
+
+  def flag?(val)
+    return self.context.flags.include?(val)
+  end                           # def flag?
+  module_function(:flag?)
+
+  def format
+    return self.context.format
+  end                           # def format
+  module_function(:format)
+
+  attr_accessor(:options)
+  module_function(:options, :options=)
+  self.options = OpenStruct.new
+  class << self.options
+    def to_hash
+      table = @table || {}
+      hash = table.inject({}) { |memo,(k,v)|
+        key = (k == :header ? k : k.to_s.dup)
+        memo[key] = v
+        memo
+      }
+      return hash
+    end
+  end
+
+  EntryPoints		= {}
+
+  FlagHelp		= Proc.new { |value,cmd|
+    $stdout.puts(cmd.help)
+    exit(0)
+  }
+
+  def subcommand(cmd_p, options={}, &block)
+    cmdsegs = cmd_p.split(%r!\s+!)
+    cmdgroup = cmdsegs.pop
+    (name, *alii) = cmdgroup.split(%r!\|!)
+    if (cmdsegs.empty?)
+      parent = :root
+      key = name
+    else
+      parent = cmdsegs.compact.join('-')
+      key = [ parent, name ].compact.join('-')
+    end
+    EntryPoints[key] = Cri::Command.define do |cdef|
+      cdef.name(name)
+      cdef.aliases(alii) unless (alii.empty?)
+      cdef.flag(:h, :help, 'Display help.', &FlagHelp)
+      yield(cdef, name, cmdgroup)
+    end
+    unless ((name == 'help') \
+            || (options.key?(:help_subcommand) && (! options[:help_subcommand])))
+      EntryPoints[key].add_command(EntryPoints['help'].dup)
+    end
+    unless (parent.nil?)
+      EntryPoints[parent].add_command(EntryPoints[key])
+    end
+  end                           # def subcommand
+  module_function(:subcommand)
+
+  cliname		= File.basename($0)
+  EntryPoints[:root]	= Cri::Command.define do |cdef|
+    cdef.name(cliname)
+    cdef.usage("#{cliname} [GLOBAL-OPTIONS] [ENTRYPOINT] [ENTRYPOINT-OPTIONS]")
+    cdef.summary('Command-line access to Candlepin API.')
+
+    cdef.flag(:h, :help, 'Display help.', &FlagHelp)
+
+    cdef.required(:f, :format,
+                  'Format of output & results (text, JSON, or YAML).') do |value,cmd|
+      fmt = value.to_s.downcase.to_sym
+      unless ([ :text, :json, :yaml ].include?(fmt))
+        raise ArgumentError.new("bad format: #{value.inspect}")
+      end
+      CandlepinCLI.context.format = fmt
+    end
+
+    cdef.required(:H, 'header-field',
+                  'Field:value to add to the request header.') do |value,cmd|
+      (name, val) = value.split(%r!\s*:\s*!, 2)
+      CandlepinCLI.context[name] = val
+    end
+
+    cdef.required(:o, :'output-file',
+                  'Where to write results.  Default is "-" (stdout).') do |value,cmd|
+      CandlepinCLI.context.outfile = value
+    end
+
+    cdef.flag(:q, :quiet, 'Be silent and grave.') do |value,cmd|
+      if (value)
+        CandlepinCLI.flags << :quiet
+      else
+        CandlepinCLI.flags.delete(:quiet)
+      end
+    end
+
+    cdef.flag(:a, :'check-api-version',
+              'Check that request & response API versions match.') do |value,cmd|
+      if (value)
+        CandlepinCLI.flags << :check_version
+      else
+        CandlepinCLI.flags.delete(:check_version)
+      end
+    end
+
+    cdef.flag(:r, :'check-status',
+              'Check that response status is valid.') do |value,cmd|
+      if (value)
+        CandlepinCLI.flags << :check_status
+      else
+        CandlepinCLI.flags.delete(:check_status)
+      end
+    end
+
+    cdef.flag(:S, :'status-line', 'Display the response status line.') do |value,cmd|
+      if (value)
+        CandlepinCLI.flags << :status_line
+      else
+        CandlepinCLI.flags.delete(:status_line)
+      end
+    end
+
+    cdef.flag(:i, :'response-header',
+              'Display the response header.') do |value,cmd|
+      if (value)
+        CandlepinCLI.flags << :response_header
+      else
+        CandlepinCLI.flags.delete(:response_header)
+      end
+    end
+
+    cdef.flag(:I, :'request-header',
+              'Display the request header.') do |value,cmd|
+      if (value)
+        CandlepinCLI.flags << :request_header
+      else
+        CandlepinCLI.flags.delete(:request_header)
+      end
+    end
+
+    cdef.flag(:B, :'response-body',
+              'Display the response body.') do |value,cmd|
+      if (value)
+        CandlepinCLI.flags << :response_body
+      else
+        CandlepinCLI.flags.delete(:response_body)
+      end
+    end
+
+    cdef.required(:s, :server,
+                  'URI of Candlepin host to access.') do |value,cmd|
+      CandlepinCLI.server_uri = value
+    end
+
+    cdef.required(:C, :credentials,
+                  'Credentials (user:pwd) for accessing Candlepin.') do |value,cmd|
+      CandlepinCLI.credentials = value
+    end
+
+    cdef.required(:d, :data, 'JSON data to pass as request body.') do |val|
+      CandlepinCLI.context.data = val
+    end
+
+    cdef.description(<<-EOT)
+Access Candlepin REST API entrypoints from the command line.
+
+Example:
+    #{File.basename($0)} -s http://cphost:8080/ GetOwner --owner=192837
+    EOT
+  end
+
+  EntryPoints['help'] = Cri::Command.define do |cdef|
+    cdef.name('help')
+    cdef.usage('help')
+    cdef.summary('Help about this command.')
+    cdef.description('Wait for it..')
+
+    cdef.run do |opts,args_p,cmd1|
+      args = args_p.dup
+      ccmd = cmd1.supercommand
+      while ((! args.empty?) && (ncmd = ccmd.command_named(args[0])))
+        ccmd = ncmd
+        args.shift
+      end
+      $stdout.puts(ccmd.help)
+      exit(0)
+    end                         # cdef.run
+  end                           # EntryPoints['help']
+  EntryPoints[:root].add_command(EntryPoints['help'].dup)
+
+  EntryPoints['versions'] = Cri::Command.define do |cdef|
+    cdef.name('versions')
+    cdef.usage('versions [OPTIONS]')
+    cdef.summary('Display information about versions.')
+    cdef.description('Wait for it..')
+
+    cdef.flag(:a, :all, 'Show all version information.') do |value,cmd|
+      if (value)
+        CandlepinCLI.flags << :all_versions
+      else
+        CandlepinCLI.flags.delete(:all_versions)
+      end
+    end
+
+    cdef.run do |opts,args_p,cmd1|
+      results = CandlepinCLI.results
+      results[:versions] = {}
+      results[:versions][:application] = CandlepinAPI::VERSION
+      results[:versions][:selected] = CandlepinAPI::API_VERSION
+      if (CandlepinCLI.flag?(:all_versions))
+        results[:versions][:supported] = CandlepinAPI::API_VERSIONS
+      end
+    end                         # cdef.run
+  end                           # EntryPoints['versions']
+  EntryPoints[:root].add_command(EntryPoints['versions'])
+
+end                             # module CandlepinCLI
+
+require(File.join('candlepin-api/cli', CandlepinAPI::API_VERSION))
+
+CandlepinCLI::EntryPoints[:root].run(ARGV)
+results = CandlepinCLI.results
+results[:errors] ||= {}
+
+def status_line(*args_p)
+  items = args_p
+  if (items.count != 2)
+    rsp = args_p[0]
+    if (rsp.kind_of?(String))
+      items[0] = rsp.to_i
+    end
+    if (rsp.kind_of?(Integer))
+      items = [ rsp, RestClient::STATUSES[rsp] ]
+    elsif (rsp.respond_to?(:code))
+      items = [ rsp.code.to_i, rsp.message ]
+    end
+  end
+  return '%03i %s' % items
+end
+
+final_status = 0
+
+catch(:results_done) do
+  throw(:results_done) unless (entrypoint = CandlepinCLI.context.entrypoint)
+
+  CandlepinCLI.credentials ||= ENV['CANDLEPIN_API_CREDENTIALS']
+  if (CandlepinCLI.credentials)
+    CandlepinAPI.basic_auth(*CandlepinCLI.credentials)
+  end
+  CandlepinCLI.server_uri ||= ENV['CANDLEPIN_API_SERVER']
+  CandlepinAPI.server_uri = CandlepinCLI.server_uri
+
+  epname = entrypoint.name.split(%r!::!)[-1]
+  results[:entrypoint] = {
+    :name	=> epname,
+    :method	=> entrypoint.const_get('API_Method_Full_Name'),
+  }
+
+  mandatory = entrypoint.const_get('VerifiedParams')
+  missing = mandatory.select { |p| eval("CandlepinCLI.options.#{p}").nil? }
+  unless (missing.empty?)
+    results[:errors] ||= {}
+    results[:errors][:missing_arguments] = missing
+    final_status = [ final_status, 8 ].max
+    throw(:results_done)
+  end
+
+  if (val = CandlepinCLI.context.data)
+    if (val[0,1] == '@')
+      if (val == '@-')
+        if ($stderr.tty? && $stdin.tty?)
+          $stderr.puts('Enter your content (application/json) for ' +
+                       entrypoint.const_get('Verb').to_s + ':')
+        end
+        data = $stdin.read
+      else
+        data = File.read(val[1,val.length])
+      end
+    else
+      data = val.dup
+    end
+    CandlepinCLI.options.body = data
+  end
+
+  unless (CandlepinCLI.context.rq_header.empty?)
+    CandlepinCLI.options.header ||= {}
+    CandlepinCLI.options.header.merge!(CandlepinCLI.context.rq_header)
+  end
+  request = entrypoint.new(CandlepinCLI.options.to_hash)
+  response = request.submit
+  results[:request] = {
+    :verb		=> entrypoint.const_get('Verb').to_s,
+    :request_URI	=> request.request_uri,
+  }
+  results[:response] = {}
+
+  if (CandlepinCLI.flag?(:request_header))
+    hsh = request.net_http_request.each_capitalized.inject({}) { |memo,(k,v)|
+      if (v.kind_of?(Array))
+        val = utf8ise(*v)
+      else
+        val = v
+      end
+      (k1, v1) = utf8ise(k, val)
+      memo[k1] = v1
+      memo
+    }
+    results[:request][:header] = hsh
+  end                           # include request-header
+
+  if (CandlepinCLI.flag?(:check_version))
+    if (rsp_used = response['x-candlepin-version'])
+      rq_used = CandlepinAPI::API_VERSION
+      if (rsp_used != rq_used)
+        results[:errors][:check_version] = {
+          :client_API_version	=> rq_used,
+          :server_API_version	=> rsp_used,
+        }
+        final_status = [ final_status, 2 ].max
+      end
+    else
+      results[:errors][:check_version] = {
+        :client_API_version	=> rq_used,
+        :server_API_version	=> nil,
+      }
+      final_status = [ final_status, 7 ].max
+    end
+  end                           # check-version
+
+  if (CandlepinCLI.flag?(:check_status))
+    unless (entrypoint.valid_response?(response))
+      result[:errors][:check_status] = {
+        :actual		=> {
+          :code		=> response.code.to_i,
+          :message	=> response.message,
+        },
+        :advertised	=> [],
+      }
+      final_status = [ final_status, 1 ].max
+      valid = entrypoint.valid_responses
+      valid.each do |code|
+        results[:errors][:check_status][:advertised] << {
+          :code		=> code,
+          :message	=> RestClient::STATUSES[code],
+        }
+      end
+    end
+  end                           # check-status
+
+  if (CandlepinCLI.flag?(:status_line))
+    results[:response][:status] = {
+      :code	=> response.code.to_i,
+      :message	=> response.message,
+    }
+  end                           # include status-line
+
+  if (CandlepinCLI.flag?(:response_header))
+    hsh = response.each_capitalized.inject({}) { |memo,(k,v)|
+      if (v.kind_of?(Array))
+        val = utf8ise(*v)
+      else
+        val = v
+      end
+      (k1, v1) = utf8ise(k, val)
+      memo[k1] = v1
+      memo
+    }
+    results[:response][:header] = hsh
+  end                           # include response-header
+
+  if (CandlepinCLI.flag?(:response_body))
+    results[:response][:body] = response.body
+  end                           # include body
+
+end                             # catch(:results_done)
+results.delete(:errors) if (results.key?(:errors) && results[:errors].empty?)
+results.delete(:response) if (results.key?(:response) && results[:response].empty?)
+
+outstream = (((of = CandlepinCLI.context.outfile) == '-') \
+             ? $stdout : File.open(of, 'w'))
+case (CandlepinCLI.format)
+when :json
+  outstream.puts(results.to_json)
+when :yaml
+  outstream.puts(results.to_yaml)
+else
+  if (results.key?(:errors))
+    outstream.puts("#{File.basename($0)}: error detection:")
+    results[:errors].each do |eclass,eelt|
+      case (eclass)
+      when :missing_arguments
+        outstream.puts('  - The following mandatory options were not ' +
+                       'specified:')
+        eelt.each { |a| outstream.puts("      --#{a}") }
+      when :check_version
+        outstream.puts('  - The client and server are using different ' +
+                       'API versions:')
+        outstream.puts('      Client: %s' % eelt[:client_API_version])
+        outstream.puts('      Server: %s' % eelt[:server_API_version])
+      when :check_status
+        outstream.puts('  - The response status code was unanticipated:')
+        outstream.puts('      Server responded with:')
+        outstream.puts('        "%s"' % status_line(*eelt[:actual]))
+        outstream.puts('      API advertises:')
+        eelt[:advertised].each do |code,msg|
+          outstream.puts('        "%s"' % status_line(code, msg))
+        end
+      end
+    end
+  end
+
+  if (results.key?(:versions))
+    outstream.puts("Application version:  #{results[:versions][:application]}")
+    outstream.puts("Selected API version: #{results[:versions][:selected]}")
+    if (results[:versions].key?(:supported))
+      outstream.print("Supported API versions:\n    ")
+      outstream.puts(results[:versions][:supported].join("\n    "))
+    end
+  end
+
+  if (CandlepinCLI.flag?(:request_header))
+    outstream.puts if (results.key?(:errors))
+    outstream.puts('%s %s' % [ results[:request][:verb],
+                               results[:request][:request_URI] ])
+    results[:request][:header].each do |k,v|
+      outstream.puts('%s: %s' % [ k, v ])
+    end
+    if (CandlepinCLI.flag?(:status_line) \
+        || CandlepinCLI.flag?(:response_header) \
+        || CandlepinCLI.flag?(:response_body))
+      outstream.puts
+    end
+  end
+
+  if (CandlepinCLI.flag?(:status_line))
+    outstream.puts(status_line(results[:response][:status][:code],
+                               results[:response][:status][:message]))
+  end 
+
+  if (CandlepinCLI.flag?(:response_header))
+    results[:response][:header].each do |k,v|
+      outstream.puts('%s: %s' % [ k, v ])
+    end
+    outstream.puts if (CandlepinCLI.flag?(:response_body))
+  end
+
+  if (CandlepinCLI.flag?(:response_body))
+    outstream.puts(results[:response][:body])
+  end
+end
+outstream.close unless (of == '-')
+
+exit(final_status)

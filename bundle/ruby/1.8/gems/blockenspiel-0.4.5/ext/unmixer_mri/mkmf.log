@@ -1,0 +1,11 @@
+have_header: checking for ruby/backward/classext.h... -------------------- no
+
+"gcc -E -I. -I/usr/lib64/ruby/1.8/x86_64-linux -I.    -O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -mtune=generic -fno-strict-aliasing  -fPIC    conftest.c -o conftest.i"
+conftest.c:1:36: error: ruby/backward/classext.h: No such file or directory
+checked program was:
+/* begin */
+1: #include <ruby/backward/classext.h>
+/* end */
+
+--------------------
+
