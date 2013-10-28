@@ -1,0 +1,920 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>
+  Module: CandlepinAPI
+  
+    &mdash; &quot;Candlepin API&quot;
+  
+</title>
+
+  <link rel="stylesheet" href="css/style.css" type="text/css" charset="utf-8" />
+
+  <link rel="stylesheet" href="css/common.css" type="text/css" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  hasFrames = window.top.frames.main ? true : false;
+  relpath = '';
+  framesUrl = "frames.html#!" + escape(window.location.href);
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div id="header">
+      <div id="menu">
+  
+    <a href="_index.html">Index (C)</a> &raquo;
+    
+    
+    <span class="title">CandlepinAPI</span>
+  
+
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="class_list.html">
+      Class List
+    </a>
+  
+    <a class="full_list_link" id="method_list_link"
+        href="method_list.html">
+      Method List
+    </a>
+  
+    <a class="full_list_link" id="file_list_link"
+        href="file_list.html">
+      File List
+    </a>
+  
+</div>
+      <div class="clear"></div>
+    </div>
+
+    <iframe id="search_frame"></iframe>
+
+    <div id="content"><h1>Module: CandlepinAPI
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+  
+    
+  
+    
+  
+  
+    <dt class="r1">Included in:</dt>
+    <dd class="r1"><span class='object_link'><a href="CandlepinAPI/Endpoint.html" title="CandlepinAPI::Endpoint (class)">Endpoint</a></span></dd>
+    
+  
+  
+    <dt class="r2 last">Defined in:</dt>
+    <dd class="r2 last">lib/candlepin-api/base.rb<span class="defines">,<br />
+  lib/candlepin-api/version.rb,<br /> lib/candlepin-api/entrypoint-extensions.rb</span>
+</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    
+<p>Classes for realising the Candlepin API in code.</p>
+
+<p>There&#39;ll be a class for each endpoint, and for each supported verb
+(entry point) for each endpoint.  Because of inheritance issues, the same
+base class is used for all, and different subsets of the methods/attributes
+used as appropriate to the conditions.</p>
+
+<p>One goal is to use these for parsing a request from a client; another goal
+is to be able to <strong>create</strong> a request as though it came from a
+client.  Thus we should hopefully be able to do away with a lot of internal
+knowledge or special-casing.</p>
+
+<p>The class methods access the fixed attributes of each endpoint or
+endpoint/verb combination.  The instance variables are for those values
+specific to a particular request.  For instance, the class method
+ListProduct#admin_only? indicates whether that verb can only be accessed
+via the super-admin role.</p>
+
+<p>For simplicity&#39;s sake (?) the class methods are available from
+instances as well.  ListProduct#admin_only? and
+ListProduct.new#admin_only? return the same value.  So the object
+representing the current request can be directly queried without resorting
+to determining its class first.</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+  
+    
+      <strong class="modules">Modules:</strong> <span class='object_link'><a href="CandlepinAPI/EntrypointExtensions.html" title="CandlepinAPI::EntrypointExtensions (module)">EntrypointExtensions</a></span>
+    
+  
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="CandlepinAPI/APIError.html" title="CandlepinAPI::APIError (class)">APIError</a></span>, <span class='object_link'><a href="CandlepinAPI/BadAPIVersion.html" title="CandlepinAPI::BadAPIVersion (class)">BadAPIVersion</a></span>, <span class='object_link'><a href="CandlepinAPI/Endpoint.html" title="CandlepinAPI::Endpoint (class)">Endpoint</a></span>
+    
+  
+</p>
+
+  <h2>Constant Summary</h2>
+  
+    <dl class="constants">
+      
+        <dt id="Placeholder_RE-constant" class="">Placeholder_RE =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>REST parameters appearing in the URI path are represented by a
+regular-expression placehold for easy extraction.</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='const'>Regexp</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='const'>Regexp</span><span class='period'>.</span><span class='id identifier rubyid_escape'>escape</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>([^/]+)</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span><span class='rparen'>)</span></pre></dd>
+      
+        <dt id="VERSION-constant" class="">VERSION =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>Frozen string representation of the module version number.</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='ivar'>@version</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
+      
+    </dl>
+  
+
+
+
+
+
+
+
+  
+    <h2>
+      Class Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#basic_auth-class_method" title="basic_auth (class method)">+ (nil, Array&lt;String&gt;) <strong>basic_auth</strong>(*args_p) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'>
+<p>Like <span class='object_link'>#server_uri</span>, this allows setting default Basic Authentication
+credentials module-wide.</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#basic_auth%3D-class_method" title="basic_auth= (class method)">+ (nil, Array&lt;String&gt;) <strong>basic_auth=</strong>(value) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'>
+<p>Related to <span class='object_link'>#basic_auth</span> but allows setting the credentials using the more
+canonical syntax.</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#server_uri-class_method" title="server_uri (class method)">+ (Object) <strong>server_uri</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'>
+<p>This refers to the default module-wide URI for the Candlepin server.</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#server_uri%3D-class_method" title="server_uri= (class method)">+ (Object) <strong>server_uri=</strong>(value) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'>
+<p>This refers to the default module-wide URI for the Candlepin server.</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#version-class_method" title="version (class method)">+ (Object) <strong>version</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'>
+<p>Returns the <a href="http://rubygems.org/gems/versionomy">Versionomy</a>
+representation of the package version number.</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#VERSION-class_method" title="VERSION (class method)">+ (Object) <strong>VERSION</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'>
+<p>Returns the package version number as a string.</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#normalise_rqtype-instance_method" title="#normalise_rqtype (instance method)">- (String) <strong>normalise_rqtype</strong>(mname = self.class.const_get(&#39;API_Method_Full_Name&#39;)) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'>
+<p>Turn the convoluted method path into a simple name for an entrypoint.</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#regex2printf-instance_method" title="#regex2printf (instance method)">- (String) <strong>regex2printf</strong>(path_p) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'>
+<p>Given a REST URI path containing placeholders, replace them with
+&#39;%s&#39; printf format effectors for generation of a useable path.</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="basic_auth-class_method">
+  
+    + (<tt>nil</tt>, <tt>Array&lt;String&gt;</tt>) <strong>basic_auth</strong>(*args_p) 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+<p>Like <span class='object_link'>#server_uri</span>, this allows setting default Basic Authentication
+credentials module-wide.  They can be overridden on an instance-by-instance
+basis.</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>args_p</span>
+      
+      
+        <span class='type'>(<tt>nil</tt>, <tt>Array&lt;String&gt;</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>nil</tt>, <tt>Array&lt;String&gt;</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'>
+<p>This will either return `nil` (if no credentials have been set module-wide)
+or a two-element array containing the basic-auth username and password.</p>
+</div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/candlepin-api/base.rb', line 68</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_basic_auth'>basic_auth</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_args_p'>args_p</span><span class='rparen'>)</span>
+  <span class='kw'>unless</span> <span class='lparen'>(</span><span class='lbracket'>[</span><span class='int'>0</span><span class='comma'>,</span> <span class='int'>2</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_args_p'>args_p</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span><span class='rparen'>)</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>wrong number of arguments </span><span class='tstring_end'>&#39;</span></span> <span class='op'>+</span>
+                            <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>(</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_args_p'>args_p</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span><span class='embexpr_end'>}</span><span class='tstring_content'> for 0 or 2)</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='kw'>if</span> <span class='lparen'>(</span><span class='id identifier rubyid_args_p'>args_p</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='op'>==</span> <span class='int'>2</span><span class='rparen'>)</span>
+    <span class='ivar'>@basic_auth_credentials</span> <span class='op'>=</span> <span class='id identifier rubyid_args_p'>args_p</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
+  <span class='kw'>end</span>
+  <span class='kw'>return</span> <span class='ivar'>@basic_auth_credentials</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="basic_auth=-class_method">
+  
+    + (<tt>nil</tt>, <tt>Array&lt;String&gt;</tt>) <strong>basic_auth=</strong>(value) 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+<p>Related to <span class='object_link'>#basic_auth</span> but allows setting the credentials using the more
+canonical syntax.</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>nil</tt>, <tt>Array&lt;String&gt;</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+88
+89
+90</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/candlepin-api/base.rb', line 88</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_basic_auth='>basic_auth=</span><span class='lparen'>(</span><span class='id identifier rubyid_username'>username</span><span class='comma'>,</span> <span class='id identifier rubyid_password'>password</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id identifier rubyid_basic_auth'>basic_auth</span><span class='lparen'>(</span><span class='id identifier rubyid_username'>username</span><span class='comma'>,</span> <span class='id identifier rubyid_password'>password</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="server_uri-class_method">
+  
+    + (<tt>Object</tt>) <strong>server_uri</strong> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+<p>This refers to the default module-wide URI for the Candlepin server.  If
+individual entrypoint instances don&#39;t set their own, this is what will
+be used.</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+54
+55
+56</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/candlepin-api/base.rb', line 54</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_server_uri'>server_uri</span>
+  <span class='ivar'>@server_uri</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="server_uri=-class_method">
+  
+    + (<tt>Object</tt>) <strong>server_uri=</strong>(value) 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+<p>This refers to the default module-wide URI for the Candlepin server.  If
+individual entrypoint instances don&#39;t set their own, this is what will
+be used.</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+54
+55
+56</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/candlepin-api/base.rb', line 54</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_server_uri='>server_uri=</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
+  <span class='ivar'>@server_uri</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="version-class_method">
+  
+    + (<tt>Object</tt>) <strong>version</strong> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+<p>Returns the <a href="http://rubygems.org/gems/versionomy">Versionomy</a>
+representation of the package version number.</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+68
+69
+70</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/candlepin-api/version.rb', line 68</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_version'>version</span>
+  <span class='kw'>return</span> <span class='ivar'>@version</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="VERSION-class_method">
+  
+    + (<tt>Object</tt>) <strong>VERSION</strong> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+<p>Returns the package version number as a string.</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+76
+77
+78</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/candlepin-api/version.rb', line 76</span>
+
+<span class='kw'>def</span> <span class='const'>VERSION</span>
+  <span class='kw'>return</span> <span class='kw'>self</span><span class='op'>::</span><span class='const'>VERSION</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="normalise_rqtype-instance_method">
+  
+    - (<tt>String</tt>) <strong>normalise_rqtype</strong>(mname = self.class.const_get(&#39;API_Method_Full_Name&#39;)) 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+<p>Turn the convoluted method path into a simple name for an entrypoint.</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>mname</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>self.class.const_get(&#39;API_Method_Full_Name&#39;)</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'>
+<p>Java-ish method name path.</p>
+</div>
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'>
+<p>Method (entrypoint) name reduced to a single camel-cased word for easier
+consumption by humans.</p>
+</div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+108
+109
+110
+111
+112
+113
+114</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/candlepin-api/base.rb', line 108</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_normalise_rqtype'>normalise_rqtype</span><span class='lparen'>(</span><span class='id identifier rubyid_mname'>mname</span><span class='op'>=</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_const_get'>const_get</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>API_Method_Full_Name</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_methname'>methname</span> <span class='op'>=</span> <span class='id identifier rubyid_mname'>mname</span><span class='period'>.</span><span class='id identifier rubyid_sub'>sub</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>%r!</span><span class='tstring_content'>^org(?:\.fedoraproject)?\.candlepin\.resource\.</span><span class='regexp_end'>!i</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
+  <span class='lparen'>(</span><span class='id identifier rubyid_rtype'>rtype</span><span class='comma'>,</span> <span class='id identifier rubyid_opname'>opname</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='id identifier rubyid_methname'>methname</span><span class='period'>.</span><span class='id identifier rubyid_split'>split</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>%r!</span><span class='tstring_content'>\.</span><span class='regexp_end'>!</span></span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_rtype'>rtype</span><span class='period'>.</span><span class='id identifier rubyid_sub!'>sub!</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>%r!</span><span class='tstring_content'>Resource$</span><span class='regexp_end'>!</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_opname'>opname</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_rtype'>rtype</span> <span class='kw'>unless</span> <span class='lparen'>(</span><span class='id identifier rubyid_opname'>opname</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>%r!</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_rtype'>rtype</span><span class='embexpr_end'>}</span><span class='regexp_end'>!i</span></span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id identifier rubyid_opname'>opname</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="regex2printf-instance_method">
+  
+    - (<tt>String</tt>) <strong>regex2printf</strong>(path_p) 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+<p>Given a REST URI path containing placeholders, replace them with
+&#39;%s&#39; printf format effectors for generation of a useable path.</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>path_p</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'>
+<p>REST path containing embedded placeholder expressions.</p>
+</div>
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'>
+<p>REST path suitable for path parameter insertion with `sprintf`.</p>
+</div>
+      
+    </li>
+  
+</ul>
+
+  <p class="tag_title">See Also:</p>
+  <ul class="see">
+    
+      <li><span class='object_link'><a href="#Placeholder_RE-constant" title="CandlepinAPI::Placeholder_RE (constant)">Placeholder_RE</a></span></li>
+    
+  </ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+126
+127
+128
+129
+130</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/candlepin-api/base.rb', line 126</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_regex2printf'>regex2printf</span><span class='lparen'>(</span><span class='id identifier rubyid_path_p'>path_p</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_path'>path</span> <span class='op'>=</span> <span class='id identifier rubyid_path_p'>path_p</span><span class='period'>.</span><span class='id identifier rubyid_gsub'>gsub</span><span class='lparen'>(</span><span class='const'>Placeholder_RE</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>%s</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_path'>path</span> <span class='op'>=</span> <span class='id identifier rubyid_path'>path</span><span class='period'>.</span><span class='id identifier rubyid_sub'>sub</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>%r!</span><span class='tstring_content'>^\^</span><span class='regexp_end'>!</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>/candlepin/</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_sub'>sub</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>%r!</span><span class='tstring_content'>/\?\$$</span><span class='regexp_end'>!</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>/</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id identifier rubyid_path'>path</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+
+    <div id="footer">
+  Generated on Mon Oct 28 16:49:33 2013 by
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.8.6.2 (ruby-2.0.0).
+</div>
+
+  </body>
+</html>

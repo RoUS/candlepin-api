@@ -1,5 +1,5 @@
 #
-# Command-line definitions for API defined in /home/coar/rhgit/it-eng/candlepin-api/data/candlepin_methods-candlepin-0.8.5.1-1.json.
+# Command-line definitions for API defined in /home/coar/othergit/candlepin-api/data/candlepin_methods-candlepin-0.8.5.1-1.json.
 #
 require('rubygems')
 require('cri')
