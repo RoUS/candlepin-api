@@ -51,7 +51,7 @@ GEM
     test-unit (2.5.0)
     versionomy (0.4.4)
       blockenspiel (>= 0.4.5)
-    yard (0.8.7)
+    yard (0.8.6.2)
 
 PLATFORMS
   ruby
@@ -72,4 +72,4 @@ DEPENDENCIES
   simplecov
   test-unit
   versionomy
-  yard (~> 0.8.6)
+  yard (< 0.8.7)

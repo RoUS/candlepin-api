@@ -43,5 +43,5 @@ group(:test, :development) do
                            ])
   gem('test-unit',	'>= 0',
       :require		=> 'test/unit')
-  gem('yard',		'~> 0.8.6')
+  gem('yard',		'< 0.8.7')
 end
