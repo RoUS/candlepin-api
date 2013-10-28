@@ -29,7 +29,14 @@ Cucumber::Rake::Task.new(:features)
 task(:default => :test)
 
 require('yard')
-YARD::Rake::YardocTask.new
+YARD::Rake::YardocTask.new do |ydoc|
+  ydoc.send(:desc, 'Generate the local YARD documentation')
+end
+
+YARD::Rake::YardocTask.new('webdoc') do |ydoc|
+  ydoc.send(:desc, 'Generate YARD documentation for the Web site')
+  ydoc.options = ['--output-dir=website/doc', '--title="Candlepin API"']
+end
 
 desc('Make the Ruby APIs for the various versions')
 task(:parse_versions) do

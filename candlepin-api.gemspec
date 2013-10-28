@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
 
   s.rubyforge_project	= 'candlepin-api'
 
-  s.has_rdoc		= false
+  s.has_rdoc		= 'yard'
   s.rdoc_options <<
     '--title=Candlepin API' <<
     '--main=README' <<
